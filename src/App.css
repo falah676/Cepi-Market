@@ -1,0 +1,13 @@
+.bagus::before {
+    --tw-bg-opacity: 0.5 !important;
+    transition: var(--tw-bg-opacity);
+    transition-duration: .2s;
+ }
+ 
+ .bagus:hover::before {
+     --tw-bg-opacity: 1 !important;
+     opacity: 0.5;
+     transition: var(--tw-bg-opacity);
+     transition-duration: .2s;
+ }
+ 
