@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import InputComponent from '../Components/InputComponent'
 import useInput from '../hooks/useInput'
 import Swal from 'sweetalert2'
 import { signUp } from '../supabase/CrudSupabase'
 import ReactLoading from 'react-loading';
+import { UserContext } from '../Context/CepiContext'
+import LoadingComponent from '../Components/LoadingComponent'
 
 
 const RegisterPage = () => {
@@ -13,15 +15,22 @@ const RegisterPage = () => {
     const [confirmPass, handleConfirmPass] = useInput('');
     const [role, handleRole] = useInput('');
     const [pass, handlePass] = useInput('');
-    const [user, handleUser] = useInput('');
+    const [userInput, handleUser] = useInput('');
     const [isLoading, setIsLoading] = useState(false)
     const navigate = useNavigate();
     const [initializing, setInitializing] = useState(true);
-    console.log(role.toLowerCase() === "admin");
+    const {user} = useContext(UserContext)
+    useEffect(() => {
+        if (user !== null) {
+          window.location.replace('/')
+        } else {
+          setInitializing(false)
+        }
+      },[])
     const handleSubmit = async (e) => {
         e.preventDefault()
         setIsLoading(true)
-        if (!email || !pass || !confirmPass || !user) {
+        if (!email || !pass || !confirmPass || !userInput) {
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -47,7 +56,7 @@ const RegisterPage = () => {
             })
             setIsLoading(false)
         } else {
-            const { data, error } = await signUp(email, pass, user, role.toLowerCase() === "admin" ? "Admin" : "user");
+            const { data, error } = await signUp(email, pass, userInput, role.toLowerCase() === "admin" ? "Admin" : "user");
             if (data) {
                 Swal.fire({
                     title: "Sign Up is Success",
@@ -66,6 +75,9 @@ const RegisterPage = () => {
             }
         }
     }
+    if (initializing) {
+        return <LoadingComponent />
+    }
     return (
         <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
             <div className="w-full rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0  dark:border-gray-700 backdrop-blur-lg">
@@ -74,7 +86,7 @@ const RegisterPage = () => {
                         Create an account
                     </h1>
                     <form className="space-y-4 md:space-y-6" onSubmit={handleSubmit}>
-                        <InputComponent isLoading={isLoading} id='user' titleInput='Username' type='user' value={user} valueHandler={handleUser} placeholder='mamank ramz' />
+                        <InputComponent isLoading={isLoading} id='user' titleInput='Username' type='user' value={userInput} valueHandler={handleUser} placeholder='mamank ramz' />
                         <InputComponent isLoading={isLoading} id='email' titleInput='Your Email' type='email' value={email} valueHandler={handleEmail} placeholder='name@gmail.com' />
                         <InputComponent isLoading={isLoading} id='password' titleInput='Password' type='password' value={pass} valueHandler={handlePass} placeholder='•••••••' />
                         <InputComponent isLoading={isLoading} id='confirmpass' placeholder='•••••••' titleInput='Confirm Password' value={confirmPass} valueHandler={handleConfirmPass} type='password' />

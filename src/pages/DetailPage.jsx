@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getDetailProduct, getImageUrl } from "../utils/FetchData";
 import toRupiah from "@develoka/angka-rupiah-js";
 import LoadingComponent from "../Components/LoadingComponent";
 import { FaCartShopping } from "react-icons/fa6";
 import {
-  getUserData,
   orderProduct,
-  updateProduct,
+  updateQuantityCart,
 } from "../supabase/CrudSupabase";
 import Swal from "sweetalert2";
+import { UserContext } from "../Context/CepiContext";
 
 const DetailPage = () => {
-  const [user, setUser] = useState(null);
+  const { user, cartProduct } = useContext(UserContext)
+  const cart = cartProduct.order;
   const { id } = useParams();
   const [data, setData] = useState([]);
   const navigate = useNavigate();
@@ -20,10 +21,13 @@ const DetailPage = () => {
   const fileName = data?.category + "/" + data?.img_url;
   const [imgUrl, setImgUrl] = useState("");
   const [quantity, setQuantity] = useState(0);
+
   const handleBuy = async () => {
     if (user === null) {
       navigate("/login");
     } else {
+      const productExist = cart.filter(i => i.id_product === data.id);
+      const qty = Number(cart.filter(i => i.id_product === data.id).map(i => i.quantity)) + Number(quantity);
       if (quantity <= 0) {
         Swal.fire({
           icon: "error",
@@ -32,48 +36,52 @@ const DetailPage = () => {
         });
         return;
       } else {
-        const { error } = await orderProduct(user.id, data.id, quantity);
-        const updateQuantity = await updateProduct(
-          data.total_product - quantity,
-          data.id
-        );
-        if (!error && !updateQuantity) {
-          Swal.fire({
-            position: "top-end",
-            icon: "success",
-            title: `You bought ${quantity} item${
-              quantity > 1 ? "s" : ""
-            } of this product`,
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          window.location.replace("/");
-          setQuantity(0);
+        if (productExist.length > 0) {
+          console.log(qty);
+          const { error } = updateQuantityCart(id, qty, data.price * qty)
+          if (!error) {
+            Swal.fire({
+              position: "top-end",
+              icon: "success",
+              title: "Your product has been added to your Cart!",
+              showConfirmButton: false,
+              timer: 1500,
+            }).then(() => window.location.replace('/'))
+          } else {
+            alert(`Error : ${error}`);
+          }
         } else {
-          console.log("Error : ", error);
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Something went wrong!",
-          });
-          return;
+          const { error } = await orderProduct(user.id, data.id, quantity, data.price * quantity);
+          if (!error) {
+            Swal.fire({
+              position: "top-end",
+              icon: "success",
+              title: `You bought ${quantity} item${quantity > 1 ? "s" : ""
+                } of this product`,
+              showConfirmButton: false,
+              timer: 1500,
+            }).then(() =>
+              window.location.replace("/")
+            )
+            setQuantity(0);
+          } else {
+            console.log("Error : ", error);
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Something went wrong!",
+            }).then(() => window.location.reload())
+          }
         }
       }
     }
   };
   useEffect(() => {
-    const getUser = async () => {
-      const { user, error } = await getUserData();
-      if (!error) {
-        setUser(user);
-      }
-    };
-    getUser()
-      .then(() => getDetailProduct(setData, id))
+    getDetailProduct(setData, id)
       .then(() => setInitializing(false));
   }, [id]);
   useEffect(() => {
-    getImageUrl(setImgUrl, fileName);
+    getImageUrl(setImgUrl, fileName, "task_school_1");
   }, [fileName]);
   if (initializing) {
     return <LoadingComponent />;
@@ -98,10 +106,10 @@ const DetailPage = () => {
             <img
               src={imgUrl}
               alt="image product"
-              className="max-w-[200px] lg:max-w-sm"
+              className="max-w-sm lg:max-w-md"
             />
           </div>
-          <div className="flex-1 text-center lg:text-left">
+          <div className="flex-1 lg:pe-6 text-center lg:text-left">
             <h1 className="text-[26px] font-medium  max-w-[450px] mx-auto lg:mx-0">
               {data.product_name}
             </h1>

@@ -1,29 +1,34 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom';
+import { useContext, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom';
 import useInput from '../hooks/useInput';
 import InputComponent from '../Components/InputComponent';
 import ReactLoading from 'react-loading';
 import Swal from 'sweetalert2';
 import { signIn } from '../supabase/CrudSupabase';
 import LoadingComponent from '../Components/LoadingComponent';
+import { UserContext } from '../Context/CepiContext';
 
 
 const LoginPage = () => {
     const [email, handleEmail] = useInput('');
     const [pass, handlePass] = useInput('');
-    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [initializing, setInitializing] = useState(false);
-    // useEffect(() => {
-    //   getUserLogin(setInitializing)
-    // },[])
+    const {user} = useContext(UserContext)
+    useEffect(() => {
+      if (user !== null) {
+        window.location.replace('/')
+      } else {
+        setInitializing(false)
+      }
+    },[])
     const submitHandler = async (e) => {
         e.preventDefault();
         setIsLoading(true)
           const { error, user, session } = await signIn(email, pass)
           if (!error) {
             if (user && session) {
-              navigate('/')
+              window.location.replace('/')
               setIsLoading(false)
             }
           } else {

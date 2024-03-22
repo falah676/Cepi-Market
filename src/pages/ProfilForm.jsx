@@ -26,7 +26,6 @@ const ProfilForm = () => {
       })
       return;
     }
-    // if image is not uploaded
     if (!imgValue) {
       Swal.fire({
         icon: 'warning',

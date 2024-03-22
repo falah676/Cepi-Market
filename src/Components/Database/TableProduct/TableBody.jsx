@@ -2,17 +2,16 @@ import { FaEdit,  } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { BsBoxArrowUpRight } from "react-icons/bs";
 import toRupiah from '@develoka/angka-rupiah-js';
-import TruncateString from "../../utils/TruncateString";
 import { useEffect, useState } from "react";
-import { getImageUrl } from "../../utils/FetchData";
+import TruncateString from "../../../utils/TruncateString"
+import { getImageUrl } from "../../../utils/FetchData";
 
 const TableBody = ({data, handleDelete, handleEdit}) => {
     const [imgUrl, setImgUrl] = useState('')
     const fileName = data?.category + '/' + data?.img_url;
     useEffect(() => {
-        getImageUrl(setImgUrl, fileName)
+        getImageUrl(setImgUrl, fileName, "task_school_1")
     },[fileName])
-    console.log(imgUrl);
   return (
     <tbody>
           <tr className="border-b dark:border-neutral-500">

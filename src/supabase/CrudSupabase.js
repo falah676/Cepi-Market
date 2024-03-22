@@ -12,19 +12,19 @@ const uploadImage = async (FileName, file, to) => {
     return;
   }
 };
-const orderProduct = async (idUser, idProduct, qty) => {
+const orderProduct = async (idUser, idProduct, qty, totalPrice) => {
   const { data, error } = await supabase
     .from("order_user")
-    .insert([{ id_user: idUser, id_product: idProduct, quantity: qty }])
+    .insert([{ id_user: idUser, id_product: idProduct, quantity: qty, total_price: totalPrice }])
     .select();
   return { data, error };
 };
-const getCartProduct = async (idUser) => {
-  let { data: order_user, error } = await supabase
+const getCartProduct = async () => {
+  let { data: order_user, error, count } = await supabase
     .from("order_user")
-    .select("*")
-    .eq("id_user", idUser);
-  return { order: order_user, error };
+    .select("*", { count: 'exact' })
+    .order('id');
+  return { order: order_user, error, count };
 };
 const deletImage = async (FileName) => {
   const { data, error } = await supabase.storage
@@ -40,6 +40,13 @@ const deletImage = async (FileName) => {
   }
 };
 
+const deleteCart = async (id) => {
+  const { error } = await supabase
+    .from('order_user')
+    .delete()
+    .in('id', id)
+  return { error }
+}
 const insertProfile = async (
   id,
   name,
@@ -65,9 +72,9 @@ const insertProfile = async (
   return error;
 };
 
-const getImage = (FileName) => {
+const getImage = (FileName, folder) => {
   const { data, error } = supabase.storage
-    .from("task_school_1")
+    .from(folder)
     .getPublicUrl(FileName);
   if (error) {
     Swal.fire({
@@ -119,6 +126,7 @@ const DeleteProduct = async (id) => {
 };
 
 const DetailProduct = async (id) => {
+  console.log(id);
   const { data, error } = await supabase
     .from("task_school_1")
     .select()
@@ -175,7 +183,7 @@ const updateProduct = async (
   fileNameOld,
   imgUrl
 ) => {
-  if (totalValue !== undefined && id !== undefined) {
+  if (totalValue !== undefined && nameValue === undefined) {
     const { error } = await supabase
       .from("task_school_1")
       .update({ total_product: totalValue })
@@ -186,8 +194,9 @@ const updateProduct = async (
       await deletImage(fileNameOld);
       await uploadImage(fileName, file, "task_school_1");
     }
-    return error;
-  } else {
+    return { error };
+  }
+  if (nameValue !== undefined && id !== undefined) {
     const { error } = await supabase
       .from("task_school_1")
       .update({
@@ -196,6 +205,7 @@ const updateProduct = async (
         price: priceValue,
         category: categoryValue,
         img_url: imgUrl,
+        total_product: totalValue
       })
       .eq("id", id)
       .select();
@@ -204,7 +214,7 @@ const updateProduct = async (
       await deletImage(fileNameOld);
       await uploadImage(fileName, file, "task_school_1");
     }
-    return error;
+    return { error };
   }
 };
 
@@ -236,14 +246,47 @@ const getUserProfile = async (id) => {
   return { profiles, errorUser: error };
 };
 
-const updateQuantityCart = async (id, quantity) => {
+const updateQuantityCart = async (id, quantity, totalPrice) => {
   const { data, error } = await supabase
     .from("order_user")
-    .update({ quantity: quantity })
-    .eq("id", id)
+    .update({ quantity: quantity, total_price: totalPrice })
+    .eq("id_product", id)
     .select();
   return { data, error };
 };
+const checkOutProduct = async (value) => {
+  const { error } = await supabase
+    .from('checkout')
+    .insert(value)
+    .select()
+  return { error }
+}
+const selectCheckout = async (id) => {
+  let query = supabase.from('checkout')
+  if (id) {
+    query = query.select('*').eq('user_id', id);
+  } else {
+    query = query.select(`*`)
+  }
+  const { data, error } = await query
+  if (error) { console.log(`ERROR ${error}`) }
+  else { return data; }
+}
+const deleteCheckout = async (id) => {
+  const { error } = await supabase
+    .from('checkout')
+    .delete()
+    .eq('id', id)
+  return { error }
+}
+const updateStatusCheckout = async (id, status) => {
+  const { data, error } = await supabase
+    .from('checkout')
+    .update({ "status": status })
+    .eq('id', id)
+    .select()
+  return { error }
+}
 export {
   InsertProduct,
   DeleteProduct,
@@ -260,4 +303,9 @@ export {
   orderProduct,
   getCartProduct,
   updateQuantityCart,
+  deleteCart,
+  checkOutProduct,
+  selectCheckout,
+  deleteCheckout,
+  updateStatusCheckout
 };

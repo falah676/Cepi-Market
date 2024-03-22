@@ -1,26 +1,30 @@
-import  { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { FaPlus } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom';
+import { MdHistory } from "react-icons/md";
 import Swal from 'sweetalert2';
 import LoadingComponent from '../Components/LoadingComponent';
 import { DeleteProduct, SelectAllProduct, getUserProfile } from '../supabase/CrudSupabase';
-import TableHeader from '../Components/TableComponent/TableHeader';
-import TableBody from '../Components/TableComponent/TableBody';
-import { getUserLogin } from '../utils/FetchData';
-const Database = () => {
+import HeaderAdmin from '../Components/Header/HeaderAdmin';
+import { UserContext } from '../Context/CepiContext';
+import TableProduct from '../Components/Database/TableProduct/TableProduct';
+import TableHistory from '../Components/Database/TableHistory/TableHistory';
+const Database = ({ handleLogout }) => {
   const navigate = useNavigate();
+  const { user } = useContext(UserContext)
   const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true);
+  const [showTableProduct, setShowTableProduct] = useState(true);
   // !cara yang salah
   // TODO: PELAJARI CARA PAKE OUTLET UNTUK CARA YANG BENAR
   const getId = JSON.parse(localStorage.getItem('sb-pimncbqgwimhulzkxcyz-auth-token'))
 
   useEffect(() => {
     const getData = async () => {
-      if (!getId) {
+      if (user === null) {
         navigate("/login")
       }
-      const {profiles} = await getUserProfile(getId.user.id);
+      const { profiles } = await getUserProfile(user.id);
       if (profiles[0].role.toLowerCase() !== "admin") {
         window.location.replace('/login')
       }
@@ -35,11 +39,13 @@ const Database = () => {
         setIsLoading(false)
       } else {
         setData(data)
-        setIsLoading(false)
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 2000);
       }
     }
     getData()
-    }, [])
+  }, []);
   const handleEdit = (id) => {
     navigate(`form/${id}`)
   }
@@ -56,7 +62,7 @@ const Database = () => {
       if (result.isConfirmed) {
         const { error } = DeleteProduct(id)
         if (!error) {
-         await Swal.fire({
+          await Swal.fire({
             icon: 'success',
             title: 'Deleted Successfully!',
           })
@@ -73,30 +79,40 @@ const Database = () => {
       }
     })
   }
-  
+
   if (isLoading) {
     return <LoadingComponent />
   }
   return (
-    <section>
-      <div className="flex flex-col justify-center items-center min-h-screen max-md:px-4">
-        <div className="w-full lg:w-[80%]">
-          <div className="overflow-x-auto">
-            <div className="min-w-full flex flex-col gap-5 py-7">
-              <button className="btn btn-xs md:btn-sm self-end" onClick={() => navigate('form/add')}><FaPlus /> Add Data</button>
-              <table className="w-full border text-center text-sm font-light dark:border-neutral-500">
-              <TableHeader />
-              {
-                data.map((i, index) => (
-                  <TableBody key={index} data={i} handleDelete={handleDelete} handleEdit={handleEdit}/>
-                ))
-              }
-              </table>
+    <>
+      <HeaderAdmin handleLogout={handleLogout} user={user} />
+      <section>
+        <div className="flex flex-col justify-center items-center min-h-screen max-md:px-4">
+          <div className="w-full lg:w-[80%]">
+            <div className="overflow-x-auto">
+              <div className="min-w-full flex flex-col gap-5 py-7">
+                <div className="flex w-full justify-between">
+                  <button className="btn btn-xs md:btn-sm self-end bg-purple-900 hover:bg-purple-950" onClick={() => setShowTableProduct(!showTableProduct)}>
+                    {showTableProduct ? <> <MdHistory />Purchase History</> : <>Table Product</>}
+                  </button>
+                  {
+                    showTableProduct &&
+                  <button className="btn btn-xs md:btn-sm self-end" onClick={() => navigate('form/add')}><FaPlus /> Add Data</button>
+                  }
+                </div>
+                {
+                  showTableProduct ? 
+                 <TableProduct handleDelete={handleDelete} handleEdit={handleEdit} product={data} /> 
+                 :
+                <TableHistory/>
+                }
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>)
+      </section>
+    </>
+  )
 }
 
 export default Database

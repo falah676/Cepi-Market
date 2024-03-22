@@ -9,9 +9,8 @@ const CardComponents = ({ data }) => {
   const fileName = data?.category + '/' + data?.img_url;
   const [imgUrl, setImgUrl] = useState('');
   useEffect(() => {
-    getImageUrl(setImgUrl, fileName)
+    getImageUrl(setImgUrl, fileName, "task_school_1")
   }, [fileName])
-  console.log(imgUrl);
   return (
     <>
       {/* <div className=" card w-96 group bg-white shadow-xl image-full bagus">

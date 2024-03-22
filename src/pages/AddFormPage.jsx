@@ -105,7 +105,7 @@ const FormPage = () => {
                   showConfirmButton: false,
                   timer: 1500
                 })
-                navigate('/')
+                window.location.replace('/admin')
               } else {
                 Swal.fire({
                   icon: "error",
@@ -125,7 +125,7 @@ const FormPage = () => {
             showConfirmButton: false,
             timer: 1500
           })
-          navigate('/')
+          window.location.replace('/admin')
         } else {
           Swal.fire({
             icon: "error",

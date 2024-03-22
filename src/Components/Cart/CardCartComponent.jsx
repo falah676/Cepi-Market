@@ -1,58 +1,103 @@
 import React, { useEffect, useState } from "react";
 import { getDetailProduct } from "../../utils/FetchData";
-import { getImage, updateQuantityCart } from "../../supabase/CrudSupabase";
+import { deleteCart, getImage, updateQuantityCart } from "../../supabase/CrudSupabase";
 import toRupiah from "@develoka/angka-rupiah-js";
+import { supabase } from "../../supabase/Client";
+import { PiArrowSquareOutBold } from "react-icons/pi";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 
-const CardCartComponent = ({ product }) => {
+const CardCartComponent = ({fetchCartProducts, product, handleCheckbox, isCheck, user }) => {
   // TODO: UNTUK NOTALIN SEMUA KIRIM SET STATE NYA DARI PAGE DAN STATE NYA BERUPA ARRAY
-  //  TODO: REALTIME
   const [data, setData] = useState([]);
+  const navigate = useNavigate()
   const [quantity, setQuantity] = useState(0);
   const fileName = data?.category + "/" + data?.img_url;
   const [isLoading, setIsLoading] = useState(false);
   const [disableButton, setDisableButton] = useState(false);
   useEffect(() => {
-    setQuantity(product.quantity);
-    getDetailProduct(setData, product.id_product);
-  }, [product]);
+    supabase.channel("order_user").on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "order_user"
+      },
+      () => {
+        fetchCartProducts(setDisableButton);
+      }
+    ).subscribe();
+  })
 
-  const updateQuantity = async (qty) => {
-    const { data, error } = updateQuantityCart(product.id, qty);
+  useEffect(() => {
+    setQuantity(product.quantity);
+    getDetailProduct(setData, product.id_product).then(() => setIsLoading(false))
+    }, [product]);
+  const Checked = (e) => isCheck.includes(e);
+  const updateQuantity = async (qty, totalPrice) => {
+    // console.log("Click");
+    const { data, error } = updateQuantityCart(product.id_product, qty, totalPrice);
     if (error) {
       alert(error.message);
       setQuantity(product.quantity);
     }
-    console.log(data);
+    // console.log(data);
   };
+  const handleDeleteCart = async() => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be  able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!"
+    });
+    if (confirm.isConfirmed) {
+    const {error} = deleteCart(product.id);
+    if(!error){
+      Swal.fire({
+        icon: 'success',
+        title: 'Successfully deleted!',
+        showConfirmButton: false,
+        timer:1500
+      })
+    }
+  } else {
+    return;
+  }
+  }
   const decreaseQuantity = async () => {
-    if (quantity > 0) {
+    setDisableButton(true);
+    if (quantity > 1) {
       setQuantity(quantity - 1);
-      setDisableButton(true);
-      await updateQuantity(quantity - 1).then(() =>
-        setTimeout(() => {
-          setDisableButton(false);
-        }, 300)
-      );
+      await updateQuantity(quantity - 1)
+    } else {
+      handleDeleteCart();
+      setDisableButton(false)
     }
   };
-  const increaseQuantity = () => {
-    if (quantity >= data.total_product) {
-      return;
+  const increaseQuantity = async () => {
+    setDisableButton(true);
+    if (quantity === data.total_product) {
+      // when quantity over from  total prodduct
+      Swal.fire({
+        icon: "warning",
+        title: `You can't add more than ${data.total_product} items`,
+        showConfirmButton: false,
+        timer: 2500,
+      })
+      setDisableButton(false)
     } else {
-      setQuantity(quantity + 1);
+      let qty = quantity + 1
+      console.log(qty);
+      setQuantity(qty);
+      await updateQuantity(quantity + 1, data.price * qty)
     }
   };
   const calculateTotalPrice = (price, quantity) => {
     return toRupiah(price * quantity);
   };
-  // const handleDelete = () => {
-  //   console.log(
-  //     "Hasil Perhitungan",
-  //     calculateTotalPrice(data.price, product.quantity)
-  //   );
-  //   console.log("Harga Awal", data.price);
-  //   console.log(data);
-  // };
   if (isLoading) {
     return (
       <div className=" h-32 items-center p-5 flex border rounded-md">
@@ -69,11 +114,11 @@ const CardCartComponent = ({ product }) => {
   return (
     <div className="w-full h-32 flex justify-center items-center border rounded-md border-neutral-400">
       <div className="w-full flex justify-between items-center p-6 gap-6">
-        <input type="checkbox" className="checkbox checkbox-success" />
+        <input type="checkbox" className="checkbox checkbox-success" value={product.id} onChange={handleCheckbox} checked={Checked(product.id)}  />
         <div className="w-[40rem] flex">
           <div className="flex gap-5 items-center">
             <img
-              src={getImage(fileName).publicUrl}
+              src={getImage(fileName, "task_school_1").publicUrl}
               alt="Image Cart"
               className="w-20 h-20 rounded-md object-cover"
             />
@@ -88,7 +133,8 @@ const CardCartComponent = ({ product }) => {
             <button
               onClick={decreaseQuantity}
               type="button"
-              className=" dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-s-md p-2 h-8 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
+              disabled={disableButton}
+              className=" dark:bg-gray-700  disabled:bg-gray-800 dark:border-gray-600 hover:bg-gray-600 border border-gray-300 rounded-s-md p-2 h-8 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
             >
               <svg
                 className="w-2 h-2  dark:text-white"
@@ -109,14 +155,16 @@ const CardCartComponent = ({ product }) => {
             <input
               type="text"
               id="quantity-input"
-              className=" border-x-0 border-gray-300 h-8 text-center  text-sm focus:ring-blue-500 focus:border-blue-500 block w-full py-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              disabled={disableButton}
+              className=" border-x-0 disabled:bg-gray-800 border-gray-300 h-8 text-center  text-sm block w-full py-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
               required=""
               value={quantity}
             />
             <button
               type="button"
               onClick={increaseQuantity}
-              className=" dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 hover:bg-gray-200 border border-gray-300 rounded-e-md p-2 h-8 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
+              disabled={disableButton}
+              className=" dark:bg-gray-700 disabled:bg-gray-800 hover:bg-gray-600 dark:border-gray-600  border border-gray-300 rounded-e-md p-2 h-8 focus:ring-gray-100 dark:focus:ring-gray-700 focus:ring-2 focus:outline-none"
             >
               <svg
                 className="w-2 h-2 dark:text-white"
@@ -139,8 +187,8 @@ const CardCartComponent = ({ product }) => {
             {calculateTotalPrice(data.price, product.quantity)}
           </p>
           <div className="min-w-20 flex justify-end">
-            <button className="btn  btn-error" onClick={() => handleDelete()}>
-              Hapus
+            <button className="btn btn-ghost" title="See More" onClick={() => navigate(`/detail/${data.id}`)}>
+              <PiArrowSquareOutBold  size={25}/>
             </button>
           </div>
         </div>

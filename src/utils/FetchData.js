@@ -1,19 +1,20 @@
+import Swal from "sweetalert2";
 import {
   DetailProduct,
   getCartProduct,
   getImage,
   getUserData,
   getUserProfile,
+  selectCheckout,
 } from "../supabase/CrudSupabase";
 
 const getDetailProduct = async (setData, id) => {
-  const productData = await DetailProduct(id);
+  const productData = await DetailProduct(Number(id));
   setData(productData);
 };
 
-const getImageUrl = async (setImg, fileName) => {
-  console.log(fileName);
-  const image = getImage(fileName);
+const getImageUrl = async (setImg, fileName, folder) => {
+  const image = getImage(fileName, folder);
   setImg(image.publicUrl);
 };
 
@@ -26,8 +27,22 @@ const getUserLogin = async (setloading) => {
     window.location.replace("/login");
   }
 
-  console.log(user);
 };
+
+const getDataOrder = async (setProductOrder, idUser) => {
+  const order = await selectCheckout(idUser);
+  if (order) {
+    setProductOrder(order)
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'Something went wrong',
+      showConfirmButton: false,
+      timer: 2000
+    }).then(() => window.location.replace('/'));
+  }
+}
 
 const getUserAdmin = async (id, setloading) => {
   const { profiles, error } = await getUserProfile(id);
@@ -38,4 +53,4 @@ const getUserAdmin = async (id, setloading) => {
 //   const { order, error } = await getCartProduct(user.id).then(() => get)
 
 // }
-export { getDetailProduct, getImageUrl, getUserLogin, getUserAdmin };
+export { getDetailProduct, getImageUrl, getUserLogin, getUserAdmin, getDataOrder };

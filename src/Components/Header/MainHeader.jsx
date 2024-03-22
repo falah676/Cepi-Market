@@ -1,9 +1,13 @@
 import { Link } from "react-router-dom";
-const Header = ({ user, handleLogout }) => {
+import toRupiah from "@develoka/angka-rupiah-js"
+import { useContext } from "react";
+import { UserContext } from "../../Context/CepiContext";
+const MainHeader = ({ user, handleLogout, totalCart, totalPrice }) => {
+  const {imgUrl} = useContext(UserContext)
   return (
     <div className="navbar bg-base-100 shadow-2xl rounded-md mb-5">
       <div className="flex-1">
-        <a className="btn btn-ghost text-xl">CevMarket</a>
+      <button onClick={() => window.location.replace('/')} className="btn btn-ghost text-xl">CevMarket</button>
       </div>
       <div className="flex-none gap-3">
         {user !== null && (
@@ -28,7 +32,7 @@ const Header = ({ user, handleLogout }) => {
                     d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
-                <span className="badge badge-sm indicator-item">8</span>
+                <span className="badge badge-sm indicator-item">{totalCart}</span>
               </div>
             </div>
             <div
@@ -36,12 +40,12 @@ const Header = ({ user, handleLogout }) => {
               className="mt-3 z-[1] card card-compact dropdown-content w-52 bg-base-100 shadow"
             >
               <div className="card-body">
-                <span className="font-bold text-lg">8 Items</span>
-                <span className="text-info">Subtotal: $999</span>
+                <span className="font-bold text-lg">{totalCart} Items</span>
+                <span className="text-info">Subtotal: {toRupiah(totalPrice)}</span>
                 <div className="card-actions">
                   <button
                     className="btn btn-primary btn-block"
-                    onClick={() => window.location.replace("/cart")}
+                    onClick={() => window.location.replace('/cart')}
                   >
                     View cart
                   </button>
@@ -77,7 +81,7 @@ const Header = ({ user, handleLogout }) => {
                 <div className="w-10 rounded-full flex justify-center items-center">
                   <img
                     alt="Tailwind CSS Navbar component"
-                    src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg"
+                    src={imgUrl}
                   />
                 </div>
               </div>
@@ -110,4 +114,4 @@ const Header = ({ user, handleLogout }) => {
   );
 };
 
-export default Header;
+export default MainHeader;
